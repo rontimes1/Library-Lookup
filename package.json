@@ -1,6 +1,6 @@
 {
   "name": "library-lookup",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "description": "Scan or type an ISBN, look up the book on arbookfind.com, and build a color-coded reading-level catalog with printable spine labels.",
