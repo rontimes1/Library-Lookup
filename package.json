@@ -1,0 +1,31 @@
+{
+  "name": "library-lookup",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Scan or type an ISBN, look up the book on arbookfind.com, and build a color-coded reading-level catalog with printable spine labels.",
+  "homepage": "https://library-lookup.netlify.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rontimes1/Library-Lookup.git"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "scripts": {
+    "test:local": "node scripts/test-local.mjs",
+    "dev": "npx netlify-cli dev"
+  },
+  "engines": {
+    "node": ">=20.18.1"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0"
+  },
+  "keywords": [
+    "library",
+    "isbn",
+    "accelerated-reader",
+    "arbookfind",
+    "labels",
+    "netlify"
+  ]
+}

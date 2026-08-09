@@ -1,0 +1,13 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+[build.environment]
+  # Node 20+ guarantees global fetch and Headers.getSetCookie() on the function runtime.
+  NODE_VERSION = "22"
+
+[functions]
+  node_bundler = "esbuild"
+
+[dev]
+  publish = "public"

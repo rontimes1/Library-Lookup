@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" type="image/png" href="favicon.png" />
+<link rel="apple-touch-icon" href="favicon.png" />
+<title>Library Lookup</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+         color:#1c2430; background:#f4f6fa; }
+  header { padding:14px 20px; background:#fff; border-bottom:1px solid #e3e8ee;
+           display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  header h1 { margin:0; font-size:16px; font-weight:650; }
+  header .brand-logo { width:26px; height:26px; object-fit:contain; margin-right:-4px; }
+  header .grow { flex:1; }
+  header .count { color:#6b7684; font-size:13px; }
+  .btn { padding:8px 12px; font-size:13px; font-weight:600; border:1px solid #cdd5df;
+         background:#fff; color:#1c2430; border-radius:8px; cursor:pointer; }
+  .btn:hover:not(:disabled) { background:#f0f3f7; }
+  .btn:disabled { opacity:.5; cursor:default; }
+  .btn.primary { background:#2e7cd6; color:#fff; border-color:#2e7cd6; }
+  .btn.primary:hover { background:#276bb8; }
+  .btn.ghost { border-color:transparent; }
+  .menu { position:relative; display:inline-block; }
+  .menu-list { position:absolute; right:0; top:calc(100% + 4px); z-index:50; min-width:240px;
+               background:#fff; border:1px solid #dce2ea; border-radius:10px; padding:5px;
+               box-shadow:0 12px 30px rgba(20,28,40,.18); }
+  .menu-list button { display:block; width:100%; text-align:left; padding:8px 10px; border:0;
+                      background:transparent; border-radius:6px; font-size:13px; color:#1c2430; cursor:pointer;
+                      white-space:nowrap; }
+  .menu-list button:hover:not(:disabled) { background:#f0f3f7; }
+  .menu-list button:disabled { color:#aab2bd; cursor:default; }
+  .menu-list button.danger { color:#b23; }
+  .menu-sep { height:1px; background:#eef1f5; margin:5px 2px; }
+  main { max-width:min(1760px, 98vw); margin:0 auto; padding:18px 20px 60px; }
+  .tablewrap { overflow-x:auto; border-radius:12px; }
+
+  .scanbar { display:flex; gap:10px; margin-bottom:10px; }
+  .scanbar input { flex:1; padding:13px 14px; font-size:16px; border:1px solid #cdd5df;
+                   border-radius:10px; outline:none; }
+  .scanbar input:focus { border-color:#2e7cd6; box-shadow:0 0 0 3px rgba(46,124,214,.15); }
+
+  .toggles { display:flex; gap:16px; flex-wrap:wrap; align-items:center; margin:4px 2px 14px;
+             color:#48505c; font-size:13px; }
+  .toggles label { display:inline-flex; align-items:center; gap:6px; cursor:pointer; user-select:none; }
+  .toggles .sep { width:1px; height:16px; background:#dfe4ea; }
+  .status { margin:0 2px 12px; color:#6b7684; font-size:13px; min-height:18px; }
+  .status.err { color:#c0392b; }
+  .status.ok  { color:#1f8a4c; }
+
+  .card { display:none; margin:0 0 18px; background:#fff; border:1px solid #e3e8ee;
+          border-radius:14px; overflow:hidden; }
+  .card .strip { height:10px; background:#ccc; }
+  .card .body { display:flex; gap:18px; padding:16px 18px; }
+  .card img { width:88px; height:128px; object-fit:cover; border-radius:6px; background:#eef1f5; flex:none; }
+  .card h2 { margin:0 0 2px; font-size:18px; }
+  .card .author { color:#6b7684; margin:0 0 10px; }
+  .facts { display:grid; grid-template-columns:auto 1fr; gap:3px 14px; font-size:14px; }
+  .facts dt { color:#6b7684; } .facts dd { margin:0; font-weight:600; }
+  .card .actions { margin-top:12px; display:flex; gap:8px; }
+  .pill { display:inline-block; padding:2px 10px; border-radius:999px; color:#fff; font-weight:700; font-size:12px; }
+
+  .section-title { display:flex; align-items:center; gap:10px; margin:8px 2px; }
+  .section-title h3 { margin:0; font-size:14px; font-weight:650; color:#38414d; }
+  .section-title .grow { flex:1; }
+
+  table { width:auto; border-collapse:collapse; background:#fff; border:1px solid #e3e8ee;
+          border-radius:12px; table-layout:fixed; }
+  th, td { padding:9px 10px; text-align:left; font-size:13px; border-bottom:1px solid #eef1f5;
+           white-space:nowrap; vertical-align:top; overflow:hidden; text-overflow:ellipsis; }
+  th { background:#f7f9fc; color:#6b7684; font-weight:600; position:relative; }
+  .colresize { position:absolute; top:0; right:0; width:9px; height:100%; cursor:col-resize; user-select:none; }
+  .colresize:hover { background:#c9d5e4; }
+  th.sortable { cursor:pointer; padding-right:24px; }
+  th.sortable:hover { color:#38414d; background:#eef4fc; }
+  th.sorted { color:#1b5fae; }
+  .sortind { position:absolute; right:13px; top:50%; transform:translateY(-50%); font-size:10px; color:#2e7cd6; line-height:1; }
+  tr:last-child td { border-bottom:0; }
+  td.dot span { display:inline-block; width:14px; height:14px; border-radius:50%; vertical-align:middle; }
+  .selcol { width:30px; text-align:center; padding-left:8px; padding-right:8px; }
+  .selcol input { cursor:pointer; }
+  .row-actions button { border:0; background:transparent; cursor:pointer; padding:3px 5px; color:#2e7cd6; font-size:13px; }
+  .row-actions button.del { color:#b23; }
+  .rowbtns { display:inline-flex; gap:2px; align-items:center; }
+  .rowmore { display:none; border:0; background:transparent; cursor:pointer; font-size:17px; line-height:1; padding:2px 8px; color:#48505c; }
+  .rowmenu button.danger { color:#b23; }
+  /* On small screens, collapse the four buttons into a single ⋯ menu. */
+  @media (max-width: 640px) {
+    .rowbtns { display:none; }
+    .rowmore { display:inline-block; padding:2px 4px; }
+    td.actcol, th.actcol { text-align:center; padding-left:4px; padding-right:4px; }
+  }
+  /* Actions column: subtle grey lane, divider, and pinned to the right edge while scrolling. */
+  .actcol { position:sticky; right:0; z-index:2; background:#f7f9fc; border-left:1px solid #dfe4ea; }
+  th.actcol { text-align:center; color:#6b7684; }
+  /* Row spacing (density) options. */
+  #tbl.dens-compact th, #tbl.dens-compact td { padding-top:3px; padding-bottom:3px; }
+  #tbl.dens-cozy th, #tbl.dens-cozy td { padding-top:6px; padding-bottom:6px; }
+  #tbl.dens-comfortable th, #tbl.dens-comfortable td { padding-top:9px; padding-bottom:9px; }
+  #tbl.dens-spacious th, #tbl.dens-spacious td { padding-top:15px; padding-bottom:15px; }
+  .empty { padding:26px; text-align:center; color:#8a93a0; font-size:13px; }
+  .appfoot { margin-top:32px; padding-top:14px; border-top:1px solid #e3e8ee; color:#8a93a0;
+             font-size:11px; line-height:1.6; display:flex; flex-wrap:wrap; gap:4px 8px; align-items:baseline; }
+  .appfoot a { color:#6b7684; }
+  .appfoot .sep2 { color:#cdd5df; }
+  .summary { display:flex; flex-wrap:wrap; gap:6px 8px; margin:0 2px 10px; font-size:12px; color:#48505c; align-items:center; }
+  .summary .chip { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border:1px solid #e3e8ee; border-radius:999px; background:#fff; }
+  .summary .chip .dot { display:inline-block; width:11px; height:11px; border-radius:50%; }
+  .summary .total { font-weight:650; color:#38414d; }
+  td.editing input { width:100%; padding:4px 6px; border:1px solid #2e7cd6; border-radius:5px; font-size:13px; }
+  td.editing input[readonly] { border-color:#e3e8ee; color:#8a93a0; background:#f7f9fc; }
+  .row-actions button.save { color:#1f8a4c; } .row-actions button.cancel { color:#6b7684; }
+
+  dialog { border:0; border-radius:14px; padding:0; width:min(560px,92vw); box-shadow:0 20px 60px rgba(0,0,0,.25); }
+  /* Anchor to a fixed top position so the tab bar stays in place while content resizes. */
+  #settingsDlg { width:min(672px,94vw); position:fixed; top:7vh; left:50%; transform:translateX(-50%); margin:0; }
+  dialog::backdrop { background:rgba(20,28,40,.45); }
+  .dlg-h { padding:16px 18px; border-bottom:1px solid #eef1f5; font-weight:650; }
+  .tabbar { display:flex; gap:4px; padding:8px 14px 0; flex-wrap:wrap; border-bottom:1px solid #e3e8ee; }
+  .tab { padding:7px 12px; font-size:13px; border:1px solid transparent; background:transparent; color:#6b7684; border-radius:8px 8px 0 0; cursor:pointer; margin-bottom:-1px; }
+  .tab:hover { color:#1c2430; }
+  .tab.active { color:#1c2430; font-weight:600; background:#fff; border-color:#e3e8ee; border-bottom-color:#fff; }
+  .tabpanel[hidden] { display:none; }
+  .dlg-b { padding:16px 18px; }
+  .dlg-b select { padding:5px 8px; border:1px solid #cdd5df; border-radius:6px; font-size:13px; background:#fff; color:#1c2430; cursor:pointer; }
+  .setrow { display:flex; align-items:center; gap:8px; margin-top:12px; font-size:13px; color:#48505c; flex-wrap:wrap; }
+  .density-preview { margin-top:8px; border:1px solid #e3e8ee; border-radius:8px; overflow:hidden; }
+  .density-preview .dp-row { display:flex; align-items:center; gap:8px; padding:9px 10px; border-bottom:1px solid #eef1f5; font-size:13px; }
+  .density-preview .dp-row:last-child { border-bottom:0; }
+  .density-preview .dp-row .muted { color:#8a93a0; margin-left:auto; }
+  .density-preview .dp-dot { width:12px; height:12px; border-radius:50%; flex:none; }
+  .density-preview.dens-compact .dp-row { padding-top:3px; padding-bottom:3px; }
+  .density-preview.dens-cozy .dp-row { padding-top:6px; padding-bottom:6px; }
+  .density-preview.dens-comfortable .dp-row { padding-top:9px; padding-bottom:9px; }
+  .density-preview.dens-spacious .dp-row { padding-top:15px; padding-bottom:15px; }
+  .dlg-b textarea { width:100%; height:150px; padding:10px; border:1px solid #cdd5df; border-radius:8px; font:13px monospace; resize:vertical; }
+  .dlg-f { padding:12px 18px; border-top:1px solid #eef1f5; display:flex; gap:8px; justify-content:flex-end; }
+  .qprog { font-size:13px; color:#6b7684; margin-top:8px; }
+  .qbar { height:8px; background:#e8edf3; border-radius:5px; overflow:hidden; margin-top:10px; }
+  .qfill { height:100%; width:0%; background:#2e7cd6; transition:width .2s; }
+  input[type=range] { vertical-align:middle; }
+  .picker { border:1px solid #e3e8ee; border-radius:8px; overflow:hidden; }
+  .picker .prow { display:flex; align-items:center; gap:8px; padding:5px 8px; border-bottom:1px solid #eef1f5; }
+  .picker .prow:last-child { border-bottom:0; }
+  .picker .prow .name { width:132px; color:#48505c; font-size:13px; }
+  .picker .prow input[type=text] { flex:1; padding:5px 7px; border:1px solid #cdd5df; border-radius:6px; font-size:12px; }
+  .picker .prow .ord button { border:1px solid #cdd5df; background:#fff; border-radius:5px; cursor:pointer; width:22px; height:22px; line-height:1; padding:0; }
+  .picker .prow.off .name, .picker .prow.off input[type=text] { opacity:.5; }
+  .picker .prow .pname-in { flex:none; width:88px; }
+  .picker .biu { display:inline-flex; gap:2px; }
+  .picker .biu button { width:22px; height:22px; padding:0; border:1px solid #cdd5df; background:#fff; border-radius:5px; cursor:pointer; font-size:12px; line-height:1; }
+  .picker .biu button:nth-child(1) { font-weight:700; }
+  .picker .biu button:nth-child(2) { font-style:italic; }
+  .picker .biu button:nth-child(3) { text-decoration:underline; }
+  .picker .biu button.on { background:#2e7cd6; color:#fff; border-color:#2e7cd6; }
+  .picker .joinbtn { height:22px; padding:0 7px; border:1px solid #cdd5df; background:#fff; border-radius:5px; cursor:pointer; font-size:11px; line-height:1; color:#48505c; }
+  .picker .joinbtn.on { background:#2e7cd6; color:#fff; border-color:#2e7cd6; }
+  .picker .joinbtn:disabled { opacity:.4; cursor:default; }
+  .picker .prow.joined { border-left:3px solid #9cc2ec; margin-left:-3px; }
+  .picker .rm { width:22px; flex:none; display:inline-flex; justify-content:center; }
+  .picker .rm button.del { border:0; background:transparent; color:#b23; cursor:pointer; font-size:13px; padding:0; }
+  .fitwarn { display:none; margin-top:8px; font-size:12px; color:#9a6a00; line-height:1.5; }
+  .fitwarn.info { color:#5a6472; }
+  .joinhelp { font-size:12px; color:#5a6472; line-height:1.5; margin:0 0 8px; padding:8px 10px; background:#f2f6fb; border:1px solid #dbe6f3; border-radius:8px; }
+  .joinhelp code { background:#e4ecf6; padding:1px 5px; border-radius:4px; font-size:11px; }
+  table td a { color:#2e7cd6; text-decoration:none; }
+  table td a:hover { text-decoration:underline; }
+
+  /* Small-screen tweaks only (desktop unaffected). */
+  @media (max-width: 640px) {
+    header { padding:10px 12px; gap:8px; }
+    header h1 { font-size:15px; }
+    main { padding:12px 12px 48px; }
+    .scanbar { gap:8px; }
+    .section-title { flex-wrap:wrap; }
+    .section-title .grow { display:none; }
+    .section-title .btn { font-size:12px; padding:6px 9px; }
+    #settingsDlg { width:96vw; top:3vh; }
+    .dlg-b { padding:14px 14px; }
+    .picker .prow { flex-wrap:wrap; row-gap:6px; }
+    .picker .prow .pname-in { width:auto; flex:1 1 auto; }
+  }
+  .picker .ptoolbar { display:flex; align-items:center; gap:8px; padding:6px 8px; background:#f7f9fc; border-bottom:1px solid #e3e8ee; font-size:12px; }
+  .picker .ptoolbar .pall { display:inline-flex; align-items:center; gap:6px; color:#38414d; font-weight:600; cursor:pointer; }
+  .picker .ptoolbar .psync { color:#8a93a0; }
+  .btn.tiny { padding:3px 9px; font-size:12px; }
+  .bandmsg { display:none; margin-top:8px; font-size:12px; color:#c0392b; line-height:1.5; }
+  .bandmsg.ok { color:#1f8a4c; }
+  .bandmsg.warn { color:#9a6a00; }
+  .hint { font-size:12px; color:#48505c; margin:8px 0 0; line-height:1.6; }
+  .hint-grid { display:grid; grid-template-columns:auto 1fr; gap:3px 12px; align-items:baseline; }
+  .hint code { background:#eef1f5; padding:1px 5px; border-radius:4px; font-size:11px; white-space:nowrap; }
+  /* Unified display-options group (Truncate / Show actions / Row spacing). */
+  .opts { margin-top:2px; border:1px solid #e3e8ee; border-radius:8px; overflow:hidden; }
+  .opt-row { display:flex; align-items:center; gap:9px; padding:10px 12px; margin:0;
+             font-size:13px; color:#48505c; border-bottom:1px solid #eef1f5; cursor:pointer; }
+  .opt-row:last-child { border-bottom:0; }
+  .opt-row input[type=checkbox] { flex:none; }
+  .opt-row input[type=number] { width:58px; padding:4px 6px; border:1px solid #cdd5df; border-radius:6px; font-size:13px; }
+  .opt-hint { color:#8a93a0; font-size:12px; margin-left:auto; }
+  .infobtn { margin-left:-4px; width:18px; height:18px; padding:0; border:0; background:transparent;
+             color:#2e7cd6; font-size:14px; line-height:1; cursor:pointer; }
+  .infobtn:hover { color:#1b5fae; }
+  .steps { margin:0; padding-left:20px; }
+  .steps li { margin:8px 0; }
+  .helphd { margin:16px 0 6px; font-size:13px; color:#1b5fae; border-bottom:1px solid #e3e8ee; padding-bottom:4px; }
+  .helphd:first-of-type { margin-top:4px; }
+  .steps kbd { background:#eef1f5; border:1px solid #d6dce4; border-radius:4px; padding:1px 6px;
+               font-family:monospace; font-size:12px; }
+  .menu-list .menu-note { padding:3px 14px 6px; font-size:11px; color:#8a93a0; }
+  /* Printer calibration control (settings) */
+  .calbox { border:1px solid #e3e8ee; border-radius:8px; padding:11px 12px; margin:0 0 14px; background:#fafbfc; }
+  .calbox .callbl { display:inline-flex; align-items:center; gap:6px; font-size:13px; color:#48505c; }
+  .calhead { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .calhead select, .calname { padding:4px 6px; border:1px solid #cdd5df; border-radius:6px; font-size:13px; background:#fff; }
+  .calname-row { margin-top:8px; } .calname { width:160px; }
+  .calbody { display:flex; gap:18px; align-items:center; flex-wrap:wrap; margin-top:12px; }
+  .dpad { display:grid; grid-template-columns:repeat(3,34px); grid-template-rows:repeat(3,34px); gap:4px; flex:none; }
+  .dpad button { border:1px solid #cdd5df; background:#fff; border-radius:6px; cursor:pointer;
+                 font-size:13px; line-height:1; color:#38414d; display:flex; align-items:center; justify-content:center; padding:0; }
+  .dpad button:hover:not(:disabled) { background:#eef4fc; border-color:#2e7cd6; color:#1b5fae; }
+  .dpad button:disabled { opacity:.4; cursor:default; }
+  .dpad .up{grid-area:1/2} .dpad .left{grid-area:2/1} .dpad .reset{grid-area:2/2}
+  .dpad .right{grid-area:2/3} .dpad .down{grid-area:3/2}
+  .dpad .reset { font-size:15px; color:#8a93a0; }
+  .calside { display:flex; flex-direction:column; gap:8px; align-items:flex-start; }
+  .calread { font-size:13px; color:#48505c; } .calread b { color:#1b5fae; font-weight:600; }
+  .calhint { font-size:12px; color:#8a93a0; margin-top:10px; line-height:1.5; }
+</style>
+</head>
+<body>
+<header>
+  <img src="favicon.png" alt="" class="brand-logo" />
+  <h1>Library Lookup</h1>
+  <span class="count" id="count">0 books</span>
+  <span class="grow"></span>
+  <button class="btn" id="bulkBtn" title="Add several books at once by pasting a list of ISBNs">Bulk add…</button>
+  <div class="menu">
+    <button class="btn" id="exportMenuBtn" title="Export or copy your book list, or print a catalog or color key">Export ▾</button>
+    <div class="menu-list" id="exportMenu" hidden>
+      <button id="exp-csv-all" title="Download all books as a CSV spreadsheet file">Export CSV - all</button>
+      <button id="exp-csv-sel" title="Download only the checked books as a CSV spreadsheet file">Export CSV - selected (0)</button>
+      <div class="menu-sep"></div>
+      <button id="exp-copy-all" title="Copy all books to the clipboard to paste into Excel or Google Sheets">Copy to clipboard - all</button>
+      <button id="exp-copy-sel" title="Copy only the checked books to the clipboard">Copy to clipboard - selected (0)</button>
+      <div class="menu-sep"></div>
+      <button id="exp-print-list" title="Print a full list of the books, or save it as a PDF">Print catalog list…</button>
+      <button id="exp-print-key" title="Print the reading-level color key, or save it as a PDF">Print color key…</button>
+    </div>
+  </div>
+  <div class="menu">
+    <button class="btn" id="sessionMenuBtn" title="Save, load, merge, or clear your working session">Session ▾</button>
+    <div class="menu-list" id="sessionMenu" hidden>
+      <button id="saveBtn" title="Downloads a JSON file with all books AND your settings - reload it any time to restore everything.">Save session…</button>
+      <button id="loadBtn" title="Replace the current books and settings with a saved session file.">Load session (replace)…</button>
+      <button id="mergeBtn" title="Add books from a saved session into the current one (deduped by ISBN). Keeps your current settings.">Merge session…</button>
+      <div class="menu-sep"></div>
+      <button id="delSelBtn" class="danger" title="Delete the checked books from this session">Delete selected (0)</button>
+      <button id="clearBtn" class="danger" title="Remove every book from this session">Clear session</button>
+    </div>
+  </div>
+  <button class="btn" id="settingsBtn" title="Change colors, columns, labels, speech, and other options">⚙ Settings</button>
+</header>
+
+<main>
+  <form class="scanbar" id="scanForm" autocomplete="off">
+    <input id="isbn" name="isbn" inputmode="numeric" placeholder="Scan or type an ISBN, then Enter" title="Scan a barcode or type an ISBN, then press Enter to look it up" autofocus />
+    <button class="btn primary" type="submit" title="Look up the ISBN you entered">Look up</button>
+  </form>
+
+  <div class="toggles" id="toggles">
+    <strong style="color:#38414d">On each scan:</strong>
+    <label title="Show the full book card (cover and details) for the scanned book."><input type="checkbox" data-flag="autoSee" checked /> See</label>
+    <label title="Read the result aloud using the phrase set in Settings."><input type="checkbox" data-flag="autoSpeak" /> Speak</label>
+    <label title="Automatically print a label for each scanned book."><input type="checkbox" data-flag="autoPrint" /> Print</label><button type="button" id="kioskInfo" class="infobtn" title="How to print without the pop-up box">ⓘ</button>
+    <label title="After each scan, clear the box and put the cursor back so the next scan works instantly with no clicking."><input type="checkbox" data-flag="autoAdvance" checked /> Clear &amp; ready for next scan</label>
+    <span class="sep"></span>
+    <label title="How fast the spoken result is read.">Voice rate <input type="range" id="rate" min="0.6" max="1.6" step="0.1" value="1" style="width:90px" /></label>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <section class="card" id="card">
+    <div class="strip" id="strip"></div>
+    <div class="body">
+      <img id="cover" alt="" onerror="this.style.visibility='hidden'" />
+      <div style="flex:1">
+        <h2 id="c_title"></h2>
+        <p class="author" id="c_author"></p>
+        <dl class="facts">
+          <dt>Color</dt><dd><span class="pill" id="c_pill"></span></dd>
+          <dt>ATOS level</dt><dd id="c_level"></dd>
+          <dt>Interest</dt><dd id="c_interest"></dd>
+          <dt>AR points</dt><dd id="c_points"></dd>
+          <dt>Type</dt><dd id="c_type"></dd>
+          <dt>Quiz no.</dt><dd id="c_quiz"></dd>
+        </dl>
+        <div class="actions">
+          <button class="btn" id="c_speak" title="Read this book's details aloud">🔊 Speak</button>
+          <button class="btn" id="c_print" title="Print single label (label maker)">🏷️ Print label</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-title">
+    <h3>Session</h3><span class="grow"></span>
+    <button class="btn" id="resetSortBtn" title="Restore the original order (the order books were added)" hidden>↕ Reset sort</button>
+    <div class="menu">
+      <button class="btn" id="printMenuBtn" title="Print labels for the books (3-across sheet or single labels)">🖨️ Print ▾</button>
+      <div class="menu-list" id="printMenu" hidden>
+        <button id="pr-sheet-all" title="Print all books onto a 3-across label sheet">🖨️ Sheet - all</button>
+        <button id="pr-sheet-sel" title="Print only the checked books onto a 3-across label sheet">🖨️ Sheet - selected (0)</button>
+        <div class="menu-note" id="calNoteSheet">Calibration: Default Template</div>
+        <div class="menu-sep"></div>
+        <button id="pr-label-all" title="Print all books as single labels on a label maker">🏷️ Labels - all</button>
+        <button id="pr-label-sel" title="Print only the checked books as single labels on a label maker">🏷️ Labels - selected (0)</button>
+        <div class="menu-note" id="calNoteLabel">Calibration: Default Template</div>
+        <div class="menu-sep"></div>
+        <button id="pr-help" title="How to fix alignment and print labels correctly">❓ Printing help</button>
+      </div>
+    </div>
+  </div>
+  <div id="summary" class="summary"></div>
+  <div class="tablewrap">
+    <table id="tbl">
+      <colgroup id="colg"></colgroup>
+      <thead id="thead"></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <div class="empty" id="empty">No books yet - scan an ISBN to begin.</div>
+
+  <footer class="appfoot">
+    <span>Library Lookup <b>v1.1</b> &middot; by Connor Smith</span>
+    <span class="sep2">&middot;</span>
+    <span>Your books stay in this browser. Scanned ISBNs are sent to arbookfind.com only to look up book info. No other data is collected.</span>
+    <span class="sep2">&middot;</span>
+    <span>Book data from <a href="https://www.arbookfind.com" target="_blank" rel="noopener noreferrer" title="Open arbookfind.com in a new tab">arbookfind.com</a> (Renaissance Learning). Not affiliated with Renaissance Learning.</span>
+  </footer>
+</main>
+
+<dialog id="bulkDlg">
+  <div class="dlg-h">Bulk add ISBNs</div>
+  <div class="dlg-b">
+    <p style="margin:0 0 8px; color:#6b7684; font-size:13px">One ISBN per line. Processed one at a time with a short delay; failures are retried once and reported.</p>
+    <textarea id="bulkText" placeholder="9780439023528&#10;9780545010221&#10;…"></textarea>
+    <div class="qbar" id="qbar" style="display:none"><div class="qfill" id="qfill"></div></div>
+    <div class="qprog" id="qprog"></div>
+  </div>
+  <div class="dlg-f">
+    <button class="btn ghost" id="bulkClose" title="Close this window">Close</button>
+    <button class="btn" id="bulkStop" style="display:none" title="Stop processing the remaining ISBNs">Stop</button>
+    <button class="btn primary" id="bulkStart" title="Start looking up the ISBNs you pasted">Start</button>
+  </div>
+</dialog>
+
+<dialog id="settingsDlg">
+  <div class="dlg-h">Settings</div>
+  <div class="tabbar" id="settingsTabs">
+    <button type="button" class="tab active" data-tab="colors" title="Set which reading-level ranges map to which colors">Colors</button>
+    <button type="button" class="tab" data-tab="table" title="Choose the columns shown in the on-screen book table">Table</button>
+    <button type="button" class="tab" data-tab="csv" title="Choose the columns for CSV export and Copy to clipboard">Export</button>
+    <button type="button" class="tab" data-tab="speech" title="Set the phrase that is read aloud on each scan">Speech</button>
+    <button type="button" class="tab" data-tab="sheet" title="Set up the 3-across label sheet">Sheet labels</button>
+    <button type="button" class="tab" data-tab="label" title="Set up single labels for a label maker">Label maker</button>
+  </div>
+  <div class="dlg-b" style="max-height:calc(90vh - 150px); overflow:auto">
+    <div class="tabpanel" data-tab="colors">
+    <h4 style="margin:2px 0 8px">Color coding</h4>
+    <label style="font-size:13px; color:#48505c">Color is decided by:
+      <select id="colorField" title="Choose which value decides a book's color: reading level or AR points">
+        <option value="atosBookLevel">ATOS book level</option>
+        <option value="points">AR points</option>
+      </select>
+    </label>
+    <table style="margin-top:10px; border:1px solid #e3e8ee">
+      <thead><tr><th>Min</th><th>Max</th><th>Color</th><th>Label</th><th></th></tr></thead>
+      <tbody id="bandRows"></tbody>
+    </table>
+    <button class="btn" id="addBand" style="margin-top:8px" title="Add another color band">+ Add band</button>
+    <div id="bandMsg" class="bandmsg"></div>
+    <label style="display:block; margin-top:14px; font-size:13px; color:#48505c">Color key title (for the printable legend)
+      <input id="legendTitle" title="Title shown at the top of the printed color key" style="display:block; width:100%; margin-top:4px; padding:8px 10px; border:1px solid #cdd5df; border-radius:8px; font-size:13px" />
+    </label>
+    </div>
+
+    <div class="tabpanel" data-tab="speech" hidden>
+    <h4 style="margin:2px 0 8px">Read-aloud phrase</h4>
+    <div style="display:flex; gap:8px; align-items:flex-start">
+      <textarea id="speechTpl" rows="2" style="flex:1; padding:9px 10px; border:1px solid #cdd5df; border-radius:8px; font-size:13px; font-family:inherit; resize:vertical; min-height:44px"></textarea>
+      <button class="btn" id="speechPreview" title="Hear a sample of the read-aloud phrase">🔊 Preview</button>
+    </div>
+    <div class="hint">
+      <div style="color:#8a93a0; margin-bottom:4px">Type any words plus these placeholders. They get replaced with the book's info when spoken. Use the Preview button to hear it.</div>
+      <div class="hint-grid">
+        <code>{title}</code><span>Book title</span>
+        <code>{authorNatural}</code><span>Author as First Last (Suzanne Collins)</span>
+        <code>{authorFirst}</code><span>Author's first name only</span>
+        <code>{authorLast}</code><span>Author's last name only</span>
+        <code>{author}</code><span>Author as listed (Collins, Suzanne)</span>
+        <code>{atosBookLevel}</code><span>ATOS reading level</span>
+        <code>{colorLabel}</code><span>Color name (Red, Blue, ...)</span>
+        <code>{points}</code><span>AR points</span>
+        <code>{interestLevel}</code><span>Interest level (full text)</span>
+        <code>{interestShort}</code><span>Interest level, short (MG+, LG, UG)</span>
+        <code>{fictionNonfiction}</code><span>Fiction or Nonfiction</span>
+        <code>{series}</code><span>Series name</span>
+        <code>{arQuizNumber}</code><span>AR quiz number</span>
+      </div>
+    </div>
+    </div>
+
+    <div class="tabpanel" data-tab="table" hidden>
+    <h4 style="margin:2px 0 8px">Table columns</h4>
+    <div class="opts">
+      <label class="opt-row" title="Shorten long text in the table so rows stay short; the full text still shows when you hover a cell">
+        <input type="checkbox" id="truncateOn" title="Turn shortening of long cell text on or off">
+        <span>Truncate long cell text to <input type="number" id="truncateLimit" min="10" max="500" title="Longest text to show before it is shortened"> characters</span>
+      </label>
+      <label class="opt-row" title="Show the per-row Speak / Print / Edit / Delete buttons. Turn off to hide that column and reclaim space; you can still print, export, and delete selected books from the Session menu.">
+        <input type="checkbox" id="showActions">
+        <span>Show the Actions column (per-row buttons)</span>
+      </label>
+      <div class="opt-row">
+        <label for="rowDensity" style="margin:0">Row spacing</label>
+        <select id="rowDensity" title="How tall each row is in the table">
+          <option value="compact">Compact</option>
+          <option value="cozy">Cozy</option>
+          <option value="comfortable">Comfortable</option>
+          <option value="spacious">Spacious</option>
+        </select>
+        <span class="opt-hint">Preview below</span>
+      </div>
+    </div>
+    <div class="density-preview" id="densityPreview">
+      <div class="dp-row"><span class="dp-dot" style="background:#E23B2E"></span><b>The Hunger Games</b><span class="muted">Level 5.3</span></div>
+      <div class="dp-row"><span class="dp-dot" style="background:#2E7CD6"></span><b>Charlotte's Web</b><span class="muted">Level 4.4</span></div>
+      <div class="dp-row"><span class="dp-dot" style="background:#3AA757"></span><b>Frog and Toad</b><span class="muted">Level 2.9</span></div>
+    </div>
+    <p style="font-size:12px; color:#8a93a0; margin:12px 0 6px">Check to show, drag order with ▲▼, and rename the header (leave blank for default).</p>
+    <div id="columnPicker" class="picker"></div>
+    </div>
+
+    <div class="tabpanel" data-tab="csv" hidden>
+    <h4 style="margin:2px 0 8px">Export columns</h4>
+    <p style="font-size:12px; color:#8a93a0; margin:0 0 6px">Columns used for <b>Export CSV</b> and <b>Copy to clipboard</b>. (The printed catalog list uses your Table columns instead.)</p>
+    <div id="csvPicker" class="picker"></div>
+    </div>
+
+    <div class="tabpanel" data-tab="sheet" hidden>
+    <h4 style="margin:2px 0 8px">🖨️ 3-across sheet labels (Avery 5160)<button type="button" id="sheetHelpInfo" class="infobtn" style="margin-left:8px" title="Printing and alignment help">ⓘ</button></h4>
+    <div class="calbox" id="sheetCal"></div>
+    <label style="font-size:13px; color:#48505c">Color mark:
+      <select id="sheetColorStyle" title="How the book's color appears on each sheet label">
+        <option value="circleTR">Circle, top-right</option>
+        <option value="barLeft">Vertical bar, left</option>
+        <option value="dotInline">Dot before color name</option>
+        <option value="none">None</option>
+      </select>
+    </label>
+    <p style="font-size:12px; color:#8a93a0; margin:10px 0 6px">Fields for the sheet - check to include, ▲▼ to order, rename, style with B/I/U, or add a custom line.</p>
+    <p class="joinhelp"><b>join</b> puts a field on the same printed line as the field above it, side by side, to make columns. Example: turn on join for “AR Points” right under “ATOS Book Level” to print <code>Level: 5.3&nbsp;&nbsp;Points: 15</code> on one line instead of two. Fewer lines means bigger text fits.<br><b>Unchecked fields are ignored</b> - join connects to the nearest field above that is turned on, so an unchecked field in between does not matter.<br><b>wrap</b> lets one field (like a long title) use a 2nd line instead of being cut off; a wrapped field counts as two lines toward fitting.</p>
+    <div id="sheetPicker" class="picker"></div>
+    <div id="sheetFit" class="fitwarn"></div>
+    </div>
+
+    <div class="tabpanel" data-tab="label" hidden>
+    <h4 style="margin:2px 0 8px">🏷️ Label-maker / single labels (e.g. Brother P-Touch)<button type="button" id="labelHelpInfo" class="infobtn" style="margin-left:8px" title="Printing and alignment help">ⓘ</button></h4>
+    <div class="calbox" id="labelMakerCal"></div>
+    <label style="font-size:13px; color:#48505c">Color mark:
+      <select id="labelMakerColorStyle" title="How the book's color appears on each single label">
+        <option value="none">None</option>
+        <option value="circleTR">Circle, top-right</option>
+        <option value="barLeft">Vertical bar, left</option>
+        <option value="dotInline">Dot before color name</option>
+      </select>
+    </label>
+    <p style="font-size:12px; color:#8a93a0; margin:10px 0 6px">Fields for single labels - configured separately from the sheet. Use “Copy from” to reuse the sheet layout.</p>
+    <p class="joinhelp"><b>join</b> puts a field on the same printed line as the field above it, side by side, to make columns. Example: turn on join for “AR Points” right under “ATOS Book Level” to print <code>Level: 5.3&nbsp;&nbsp;Points: 15</code> on one line instead of two. Fewer lines means bigger text fits.<br><b>Unchecked fields are ignored</b> - join connects to the nearest field above that is turned on, so an unchecked field in between does not matter.<br><b>wrap</b> lets one field (like a long title) use a 2nd line instead of being cut off; a wrapped field counts as two lines toward fitting.</p>
+    <div id="labelMakerPicker" class="picker"></div>
+    <div id="labelMakerFit" class="fitwarn"></div>
+    </div>
+  </div>
+  <div class="dlg-f">
+    <button class="btn ghost" id="settingsReset" title="Reset all settings back to their defaults">Reset to defaults</button>
+    <span style="flex:1"></span>
+    <button class="btn" id="settingsCancel" title="Close settings without saving your changes">Cancel</button>
+    <button class="btn primary" id="settingsSave" title="Save your settings changes">Save</button>
+  </div>
+</dialog>
+
+<dialog id="kioskDlg">
+  <div class="dlg-h">Print labels without the pop-up box</div>
+  <div class="dlg-b" style="max-height:70vh; overflow:auto">
+    <p style="margin:0 0 10px; color:#48505c">Normally your browser shows a print box every time. To make a label print the instant you scan, set up Chrome once. It takes about two minutes.</p>
+    <ol class="steps">
+      <li><b>Make your label printer the default.</b><br>
+        Open Windows <b>Settings → Bluetooth &amp; devices → Printers &amp; scanners</b>. Turn <b>off</b> "Let Windows manage my default printer," then click your label printer and choose <b>Set as default</b>.</li>
+      <li><b>Add one setting to Chrome's shortcut.</b><br>
+        Close Chrome completely. Right-click your Chrome icon → <b>Properties</b>. In the <b>Target</b> box, click at the very end, press the spacebar once, then type: <kbd>--kiosk-printing</kbd> and click <b>OK</b>.</li>
+      <li><b>Reopen Chrome using that icon</b> and load this page again.</li>
+      <li><b>Turn on the "Print" checkbox</b> next to "On each scan." Now every scan prints a label right away, with no pop-up.</li>
+    </ol>
+    <p style="margin:12px 0 0; color:#8a93a0; font-size:12px">This always prints to your <b>default</b> printer, so make sure the right one is set as default. To go back to normal printing, remove <kbd>--kiosk-printing</kbd> from the shortcut.</p>
+  </div>
+  <div class="dlg-f">
+    <button class="btn primary" id="kioskClose" title="Close this help window">Got it</button>
+  </div>
+</dialog>
+
+<dialog id="printHelpDlg">
+  <div class="dlg-h">Printing and alignment help</div>
+  <div class="dlg-b" style="max-height:70vh; overflow:auto">
+    <p style="margin:0 0 12px; color:#48505c">Labels can print a little off because every printer is slightly different. If your text is not landing inside the labels, check these settings in order. The first one fixes most problems.</p>
+
+    <h4 class="helphd">Applies to all label printing</h4>
+    <ol class="steps">
+      <li><b>Print at 100% (Actual size).</b><br>
+        In the browser's print box, set <b>Scale</b> to <b>100</b> or <b>Default</b>. Never use <b>Fit to page</b> or <b>Shrink to fit</b> - that shrinks every label and is the most common cause of misalignment.</li>
+      <li><b>Keep Margins on "Default".</b><br>
+        If you pick None, Minimum, or Custom, the browser ignores this app's label spacing and calibration.</li>
+      <li><b>Do a test print on plain paper.</b><br>
+        On the <b>Sheet labels</b> or <b>Label maker</b> tab in Settings, click <b>Print alignment test</b> to print empty outlines. Hold the page against a blank label sheet up to the light and see whether the boxes line up.</li>
+      <li><b>Calibrate if it is still off.</b><br>
+        Use the up / down / left / right pad to nudge the labels <b>0.01 inch</b> per click until the test lines up. Name a profile per printer (for example "Office printer") and pick it before printing. <b>Default Template</b> always matches the official specs.</li>
+    </ol>
+
+    <h4 class="helphd">3-across sheet labels (Avery 5160)</h4>
+    <ul class="steps">
+      <li>Set paper size to <b>Letter</b> and orientation to <b>Portrait</b>.</li>
+      <li>This sheet follows the Avery 5160 layout: 30 labels, 3 across and 10 down. Avery has printer-specific tips here:
+        <a href="https://www.avery.com/help/article/not-printing-correctly-print-is-shrunk-misalignment-too-low-on-page-too-high" target="_blank" rel="noopener noreferrer">fixing shrunk or misaligned prints</a> and
+        <a href="https://www.avery.com/help/article/recommended-printer-settings-specific-printer-settings" target="_blank" rel="noopener noreferrer">recommended printer settings</a>.</li>
+      <li>If every label is shifted the same way, calibrate the sheet profile. If only some rows or columns drift, re-check that Scale is set to 100%.</li>
+    </ul>
+
+    <h4 class="helphd">Label maker / single labels</h4>
+    <ul class="steps">
+      <li>Set the printer's paper or label size to your label stock (for example your Brother label size), not Letter.</li>
+      <li>Each label prints on its own page. Use the alignment test on the <b>Label maker</b> tab to check the fit.</li>
+      <li>If the text sits too high, too low, or to one side, calibrate the label maker profile with the nudge pad.</li>
+    </ul>
+
+    <p style="margin:12px 0 0; color:#8a93a0; font-size:12px">Some printers cannot print all the way to the edge of the page, so a small shift is normal.</p>
+  </div>
+  <div class="dlg-f">
+    <button class="btn primary" id="printHelpClose" title="Close this help window">Got it</button>
+  </div>
+</dialog>
+
+<input type="file" id="fileInput" accept="application/json" style="display:none" />
+<script type="module" src="./app.js"></script>
+</body>
+</html>

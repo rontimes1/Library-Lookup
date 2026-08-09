@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Netlify local state and build output
+.netlify/
+dist/
+
+# Environment / secrets
+.env
+.env.*
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor / cloud-sync junk
+.DS_Store
+Thumbs.db
+.fuse_hidden*
+*.swp
+.vscode/
+.idea/
